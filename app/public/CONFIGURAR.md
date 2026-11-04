@@ -1,6 +1,6 @@
 # Área: activar tu app compartida sin contratar planes de pago
 
-La app ya incluye el cliente Supabase, el esquema de base de datos, permisos, historial, importación inicial y PWA. No se ha creado ni publicado ningún servicio por ti. Estos pasos se realizan en tus propias cuentas; no compartas contraseñas ni claves secretas.
+La app incluye el cliente Supabase, el esquema de base de datos, permisos, historial, importación inicial y PWA. Estos pasos se realizan en tus propias cuentas; no compartas contraseñas ni claves secretas.
 
 ## 1. Crear un proyecto Supabase Free
 

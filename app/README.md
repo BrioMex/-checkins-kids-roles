@@ -35,6 +35,6 @@ La publicación automática en GitHub Pages está en `..\.github\workflows\pages
 
 Para compilar manualmente el repositorio `BrioMex/-checkins-kids-roles`, usa `npm run build -- --base=/-checkins-kids-roles/`. El workflow detecta la ruta automáticamente.
 
-**Pendiente de configuración externa:** crear el proyecto gratuito, habilitar Google, ejecutar la migración, autorizar al primer administrador y publicar bajo HTTPS. Las pruebas locales no validan tus credenciales, tu proyecto alojado ni Safari en un teléfono real.
+**Configuración externa necesaria:** proyecto Supabase, Google habilitado, migraciones aplicadas, primer administrador autorizado y publicación bajo HTTPS. Las pruebas locales no validan tus credenciales, tu proyecto alojado ni Safari en un teléfono real.
 
 La regla de una persona por servicio se comprueba en cliente y servidor. El Excel original tiene un conflicto el **15 de noviembre de 2026 a las 09:00**, entre **Check-in 1 y Maestro/a de Preteens**, fila 13 de ambas hojas. La importación lo muestra y se detiene antes de enviar datos; corrige una copia antes de importar. Los originales no se modificaron.
