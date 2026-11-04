@@ -1,8 +1,8 @@
-import { areas, escapeHtml as e, type Snapshot } from "./schema";
+import { areas, escapeHtml as e, visibleAssignments, type Snapshot } from "./schema";
 import { matchesAssignment, prettyDate, type ViewState } from "./view";
 
 export function printView(s: Snapshot, ui: ViewState, range: "selected" | "all") {
-  const slots = s.assignments.filter((a) => (ui.area === "all" || a.areaId === ui.area) && matchesAssignment(s, a, ui));
+  const slots = visibleAssignments(s).filter((a) => (ui.area === "all" || a.areaId === ui.area) && matchesAssignment(s, a, ui));
   const byPosition = new Map(slots.map((a) => [`${a.occurrenceId}:${a.positionId}`, a]));
   const included = new Set(slots.map((a) => a.occurrenceId));
   const dates = [...new Set(s.occurrences.filter((o) => included.has(o.id) && (range === "all" || o.date === ui.date)).map((o) => o.date))].sort();
@@ -21,7 +21,7 @@ export function printView(s: Snapshot, ui: ViewState, range: "selected" | "all")
       ${areas.map((area) => {
         const positions = s.positions.filter((p) => p.areaId === area.id && services.some((o) => byPosition.has(`${o.id}:${p.id}`)));
         if (!positions.length) return "";
-        return `<table class="print-area"><caption>${area.name}</caption><thead><tr><th scope="col">Puesto</th>${services.map((o) => `<th scope="col">${e(o.time)}<small>${e(o.name)}</small></th>`).join("")}</tr></thead><tbody>${positions.map((p) => `<tr><th scope="row">${e(p.name)}</th>${services.map((o) => {
+        return `<table class="print-area"><caption>${area.name}</caption><thead><tr><th scope="col">Puesto</th>${services.map((o) => `<th scope="col">${e(o.time)}<small>${e(o.name)}</small></th>`).join("")}</tr></thead><tbody>${positions.map((p) => `<tr><th scope="row">${e(p.name)}${p.active ? "" : " (inactivo)"}</th>${services.map((o) => {
           const a = byPosition.get(`${o.id}:${p.id}`);
           return a ? `<td>${a.volunteerId ? e(people.get(a.volunteerId)) : '<span class="print-vacant">Sin asignar</span>'}${a.note ? `<small class="print-note">${e(a.note)}</small>` : ""}</td>` : '<td class="print-excluded">—</td>';
         }).join("")}</tr>`).join("")}</tbody></table>`;

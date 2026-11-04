@@ -37,6 +37,8 @@ Para compilar manualmente el repositorio `BrioMex/-checkins-kids-roles`, usa `np
 
 **Imprimir rol:** permite elegir el día seleccionado o todos los días, con una hoja por fecha. Cada área tiene una tabla de puestos (filas) frente a todos los horarios de servicio (columnas). Conserva los filtros de área, nombre, pendientes y Mi participación; omite fechas sin coincidencias. Incluye notas y reduce el contenido si hace falta para ajustar cada día a Carta; con muchos puestos o notas la letra puede quedar pequeña.
 
+Los puestos inactivos sin asignar no aparecen en roles, contadores ni impresión. Si tienen personas asignadas, se conservan visibles como inactivos. Reactivar un puesto recupera sus espacios ya generados, sin perder notas ni participaciones.
+
 **Configuración externa necesaria:** proyecto Supabase, Google habilitado, migraciones aplicadas, primer administrador autorizado y publicación bajo HTTPS. Las pruebas locales no validan tus credenciales, tu proyecto alojado ni Safari en un teléfono real.
 
 La regla de una persona por servicio se comprueba en cliente y servidor. El Excel original tiene un conflicto el **15 de noviembre de 2026 a las 09:00**, entre **Check-in 1 y Maestro/a de Preteens**, fila 13 de ambas hojas. La importación lo muestra y se detiene antes de enviar datos; corrige una copia antes de importar. Los originales no se modificaron.

@@ -14,6 +14,14 @@ async function requestPrint(page: Page, range = "selected") {
   await page.getByLabel("Fechas a imprimir").selectOption(range);
   await page.getByRole("button", { name: "Imprimir", exact: true }).click();
 }
+async function setBabiesPosition(page: Page, name: string, active: boolean) {
+  await page.getByRole("button", { name: "Configuración", exact: true }).click();
+  await page.locator(".position-list").first().locator(":scope > div").filter({ hasText: name }).getByRole("button", { name: "Editar", exact: true }).click();
+  await page.getByLabel("Activo", { exact: true }).setChecked(active);
+  await page.getByRole("button", { name: "Guardar cambios", exact: true }).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await page.getByRole("button", { name: "Roles por área", exact: true }).click();
+}
 
 test("muestra acceso privado y utiliza Google OAuth sin exponer directorio", async ({ context, page }) => {
   const mock = await backend();
@@ -287,5 +295,75 @@ test("ajusta notas extensas a una hoja y permite imprimir en modo de consulta si
     await page.locator('button[data-action="logout"]:visible').first().click();
     await expect(page.getByRole("button", { name: "Continuar con Google" })).toBeVisible();
     await expect(root).toBeEmpty();
+  } finally { await mock.close(); }
+});
+test("desactivar un puesto vacío actualiza vistas, contadores y otra sesión; reactivarlo recupera sus notas", async ({ browser, context, page }) => {
+  const mock = await backend();
+  const viewerContext = await browser.newContext();
+  try {
+    await mock.db.exec(`update public.assignments set note='Nota conservada' where id=(
+      select a.id from public.assignments a join public.positions p on p.id=a.position_id
+      join public.occurrences o on o.id=a.occurrence_id where p.area_id='babies' and p.name='Asistente 1'
+      order by o.start_time limit 1)`);
+    const before = (await mock.db.query(`select a.id,a.volunteer_id,a.note,a.version from public.assignments a
+      join public.positions p on p.id=a.position_id where p.area_id='babies' and p.name='Asistente 1' order by a.id`)).rows;
+    await mock.attach(context);
+    await mock.attach(viewerContext, "volunteer");
+    await interceptPrint(page);
+    const viewer = await viewerContext.newPage();
+    await page.goto("/");
+    await viewer.goto("http://127.0.0.1:4174/");
+    await expect(viewer.locator(".area-card.peach .slot")).toHaveCount(3);
+    await expect(viewer.locator(".local-status")).toContainText("tiempo real");
+    await setBabiesPosition(page, "Asistente 1", false);
+    await expect(page.locator(".area-card.peach .role-label")).toHaveText(["Maestro/a", "Ayuda"]);
+    await expect(viewer.locator(".area-card.peach .slot")).toHaveCount(2);
+    await expect(page.locator(".stat-denominator")).toHaveText("/ 39");
+    await expect(page.locator('[data-action="pending"] strong')).toHaveText(/^38\s*Ver puestos disponibles$/);
+    await page.getByRole("button", { name: "Avanzado", exact: true }).click();
+    await expect(page.locator(".assignments-table tbody tr").filter({ hasText: "Babies" })).toHaveCount(2);
+    await requestPrint(page);
+    const babies = page.locator("#print-roles").getByRole("table", { name: "Babies", exact: true });
+    await expect(babies.locator("tbody tr")).toHaveCount(2);
+    await expect(babies).not.toContainText("Asistente 1");
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+    await page.getByRole("button", { name: "Sencillo", exact: true }).click();
+    await setBabiesPosition(page, "Asistente 1", true);
+    await expect(page.locator(".area-card.peach .slot")).toHaveCount(3);
+    await expect(viewer.locator(".area-card.peach .slot")).toHaveCount(3);
+    await expect(page.locator(".stat-denominator")).toHaveText("/ 42");
+    await expect(page.locator(".area-card.peach").getByText("Nota conservada", { exact: true })).toBeVisible();
+    const after = (await mock.db.query(`select a.id,a.volunteer_id,a.note,a.version from public.assignments a
+      join public.positions p on p.id=a.position_id where p.area_id='babies' and p.name='Asistente 1' order by a.id`)).rows;
+    expect(after).toEqual(before);
+  } finally { await viewerContext.close(); await mock.close(); }
+});
+test("un puesto inactivo con persona sigue visible y marcado, pero deja de ser pendiente al liberarlo", async ({ context, page }) => {
+  const mock = await backend();
+  try {
+    await mock.attach(context);
+    await interceptPrint(page);
+    await page.goto("/");
+    await expect(page.locator(".area-card")).toHaveCount(5);
+    await setBabiesPosition(page, "Maestro/a", false);
+    const label = "Cambiar Maestro/a (inactivo) en Babies: Ana Ejemplo";
+    await expect(page.getByRole("button", { name: label, exact: true })).toBeVisible();
+    await expect(page.locator(".stat-denominator")).toHaveText("/ 40");
+    await expect(page.locator('[data-action="pending"] strong')).toHaveText(/^39\s*Ver puestos disponibles$/);
+    const assignments = await mock.db.query<{ volunteer_id: string }>("select volunteer_id from public.assignments where volunteer_id=$1", [people.ana]);
+    expect(assignments.rows).toEqual([{ volunteer_id: people.ana }]);
+    await requestPrint(page);
+    const teacher = page.locator("#print-roles").getByRole("table", { name: "Babies", exact: true }).getByRole("row", { name: /Maestro\/a \(inactivo\)/ });
+    await expect(teacher.locator("td")).toHaveText(["Ana Ejemplo", "—", "—"]);
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+    await page.getByRole("button", { name: label, exact: true }).click();
+    await expect(page.getByRole("dialog")).toContainText("Si la dejas sin asignar, se ocultará");
+    await page.getByLabel("Voluntario", { exact: true }).selectOption("");
+    await page.getByRole("button", { name: "Guardar cambios", exact: true }).click();
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+    await expect(page.locator(".area-card.peach .role-label")).toHaveText(["Ayuda", "Asistente 1"]);
+    await expect(page.locator(".stat-denominator")).toHaveText("/ 39");
+    await expect(page.locator('[data-action="pending"] strong')).toHaveText(/^39\s*Ver puestos disponibles$/);
+    expect((await mock.db.query<{ count: number }>("select count(*)::integer as count from public.assignments")).rows[0].count).toBe(42);
   } finally { await mock.close(); }
 });

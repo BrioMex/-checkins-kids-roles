@@ -22,13 +22,15 @@ export function dialogView(s: Snapshot, edit: EditContext, payload: WorkbookPayl
     const a = s.assignments.find((v) => v.id === edit.id);
     if (!a) throw new Error("La asignación ya no existe.");
     const occurrence = s.occurrences.find((o) => o.id === a.occurrenceId)!;
+    const position = s.positions.find((p) => p.id === a.positionId)!;
     title = "Un lugar para sumar.";
-    description = `${areas.find((v) => v.id === a.areaId)?.name} · ${s.positions.find((p) => p.id === a.positionId)?.name} · ${prettyDate(occurrence.date)} · ${occurrence.name} ${occurrence.time}`;
+    description = `${areas.find((v) => v.id === a.areaId)?.name} · ${position.name}${position.active ? "" : " (inactivo)"} · ${prettyDate(occurrence.date)} · ${occurrence.name} ${occurrence.time}`;
     fields = select("Voluntario", "volunteerId", option("", "Dejar sin asignar", !a.volunteerId) +
       s.volunteers.filter((v) => v.id === a.volunteerId || (v.active && v.areas.includes(a.areaId))).map((v) => {
         const busy = s.assignments.some((other) => other.id !== a.id && other.occurrenceId === a.occurrenceId && other.volunteerId === v.id);
         return `<option value="${v.id}" ${a.volunteerId === v.id ? "selected" : ""} ${busy ? "disabled" : ""}>${e(v.name)}${!v.active ? " (inactivo; asignación histórica)" : ""}${busy ? " (ya tiene puesto)" : ""}</option>`;
-      }).join("")) + '<p class="field-help">Solo personas elegibles del área. El servidor impide puestos duplicados.</p>' + note(a.note);
+      }).join("")) + '<p class="field-help">Solo personas elegibles del área. El servidor impide puestos duplicados.</p>' +
+      (position.active ? "" : '<p class="field-help">Puesto inactivo: se conserva esta participación. Si la dejas sin asignar, se ocultará hasta reactivar el puesto.</p>') + note(a.note);
   } else if (edit.kind === "volunteer") {
     const v = s.volunteers.find((p) => p.id === edit.id);
     title = v ? "Una persona del equipo." : "Una persona que suma.";
@@ -44,7 +46,7 @@ export function dialogView(s: Snapshot, edit: EditContext, payload: WorkbookPayl
   } else if (edit.kind === "position") {
     const v = s.positions.find((p) => p.id === edit.id);
     title = "Cada puesto cuenta.";
-    description = "Desactivarlo no elimina puestos o personas ya asignados. Regenera el periodo para añadir los nuevos.";
+    description = "Desactivarlo oculta los puestos sin asignar. Las participaciones existentes se conservan marcadas como inactivas. Regenera el periodo para añadir puestos nuevos.";
     fields = select("Área", "areaId", areas.map((a) => option(a.id, a.name, (v?.areaId ?? "babies") === a.id)).join(""), v ? "disabled" : "") +
       field("Nombre del puesto", "name", v?.name ?? "", 'required maxlength="60"') + active(v?.active ?? true);
   } else if (edit.kind === "grant") {

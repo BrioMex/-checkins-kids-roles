@@ -52,6 +52,10 @@ export const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "
 export function canEdit(snapshot: Snapshot, area: AreaId) {
   return snapshot.actor.role === "admin" || (snapshot.actor.role === "coordinator" && snapshot.actor.areas.includes(area));
 }
+export function visibleAssignments(snapshot: Snapshot) {
+  const active = new Set(snapshot.positions.filter((p) => p.active).map((p) => p.id));
+  return snapshot.assignments.filter((a) => active.has(a.positionId) || a.volunteerId !== null);
+}
 export function escapeHtml(value: unknown): string {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
 }

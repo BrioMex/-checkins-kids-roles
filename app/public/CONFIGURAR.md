@@ -113,7 +113,7 @@ Límites: archivo hasta 5 MB, 2.000 filas por hoja y 10.000 puestos. Los nombres
 
 Para empezar sin Excel, añade voluntarios desde el directorio, verifica servicios y puestos y usa **Generar periodo**. La generación añade solo fechas y puestos faltantes, hasta 121 días por operación; conserva personas, notas y versiones. No reparte personas automáticamente. Se asigna desde las tarjetas o la tabla avanzada.
 
-Cambiar o desactivar una plantilla no altera las fechas ya generadas. Desactivar un puesto tampoco elimina sus puestos existentes. No se puede quitar un área a una persona ni desactivarla mientras tenga participaciones presentes o futuras afectadas: libera primero esos puestos.
+Cambiar o desactivar una plantilla de servicio no altera las fechas ya generadas. Desactivar un puesto oculta sus espacios sin asignar del calendario, los contadores y la impresión; conserva y marca como inactivas las participaciones con personas asignadas. No se borran registros ni notas: al reactivarlo vuelven a mostrarse sus espacios ya generados. No se puede quitar un área a una persona ni desactivarla mientras tenga participaciones presentes o futuras afectadas: libera primero esos puestos.
 
 ## 7. Publicar gratis
 
