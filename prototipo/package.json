@@ -1,0 +1,14 @@
+{
+  "name": "area-prototipo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prototipo visual de roles por area; sin conexion a servicios externos.",
+  "scripts": {
+    "start": "node server.cjs",
+    "test": "node --test tests\\model.test.cjs",
+    "test:ui": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
+  }
+}

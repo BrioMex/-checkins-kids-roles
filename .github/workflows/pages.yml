@@ -1,0 +1,75 @@
+name: Publicar GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    defaults:
+      run:
+        working-directory: app
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - name: Descargar fuentes
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Preparar Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Detectar ruta de Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Comprobar variables publicas
+        run: |
+          node --input-type=module -e "
+            for (const name of ['VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY']) {
+              if (!process.env[name]?.trim()) {
+                throw new Error('Configura la variable ' + name + ' en Settings > Secrets and variables > Actions > Variables.');
+              }
+            }
+          "
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Probar reglas y base de datos
+        run: npm test
+      - name: Compilar app
+        env:
+          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: npm run build -- --base="$PAGES_BASE_PATH/"
+      - name: Preparar archivos del sitio
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: app/dist
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar sitio
+        id: deployment
+        uses: actions/deploy-pages@v4
