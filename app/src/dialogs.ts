@@ -2,7 +2,7 @@ import { areas, dayNames, escapeHtml as e, quarterEnd, roleNames, today, type Sn
 import { prettyDate, icon } from "./view";
 import type { WorkbookPayload } from "./importer";
 
-export type DialogKind = "assignment" | "volunteer" | "service" | "position" | "grant" | "settings" | "generate" | "import";
+export type DialogKind = "assignment" | "volunteer" | "service" | "position" | "grant" | "settings" | "generate" | "import" | "print";
 export type EditContext = { kind: DialogKind; id: string | null; version: number };
 function field(label: string, name: string, value: string, options = "") {
   return `<label class="form-field" for="field-${name}">${label}</label><input class="form-control" id="field-${name}" name="${name}" value="${e(value)}" ${options}>`;
@@ -69,6 +69,12 @@ export function dialogView(s: Snapshot, edit: EditContext, payload: WorkbookPayl
     fields = field("Desde", "start", start, 'type="date" required') + field("Hasta (incluido)", "end", quarterEnd(start), 'type="date" required') +
       '<p class="field-help">Máximo 121 días. Si vas a importar tu Excel, hazlo antes de generar el primer periodo.</p>';
     submit = "Generar sin borrar";
+  } else if (edit.kind === "print") {
+    title = "Imprimir rol.";
+    description = "Una hoja por día, con una tabla por área y todos los horarios. Se respetan los filtros de área, nombre, pendientes y Mi participación. Las fechas sin coincidencias se omiten.";
+    fields = select("Fechas a imprimir", "range", option("selected", "Solo el día seleccionado", true) + option("all", "Todos los días", false)) +
+      '<p class="field-help">El contenido se reduce si hace falta para que cada día quepa en una hoja tamaño Carta. Se conservan las notas.</p>';
+    submit = "Imprimir";
   } else {
     title = payload ? "Revisa antes de importar." : "Tu Excel, un nuevo comienzo.";
     description = "Importación inicial, completa y transaccional. No ejecuta el Office Script. No mezcla ni sobrescribe una agenda existente.";
@@ -84,5 +90,5 @@ export function dialogView(s: Snapshot, edit: EditContext, payload: WorkbookPayl
       submit = "Previsualizar archivo";
     }
   }
-  return `<form id="edit-form"><div class="dialog-heading"><span class="area-icon sage">${icon(edit.kind === "assignment" ? "users" : "settings")}</span><button type="button" class="icon-button" data-action="close-dialog" aria-label="Cerrar">${icon("close")}</button></div><p class="eyebrow">JUNTOS LO HACEMOS POSIBLE</p><h2 id="dialog-title">${title}</h2><p class="dialog-description">${e(description)}</p>${fields}<p id="form-error" class="form-error" role="alert"></p><div class="dialog-footer"><button type="button" class="button secondary" data-action="close-dialog">Cancelar</button><button type="submit" class="button primary">${submit}</button></div><p class="dialog-local">${icon("shield")} ${edit.kind === "import" && !payload ? "El archivo se analiza localmente." : "El servidor valida tus permisos antes de guardar."}</p></form>`;
+  return `<form id="edit-form"><div class="dialog-heading"><span class="area-icon sage">${icon(edit.kind === "assignment" ? "users" : "settings")}</span><button type="button" class="icon-button" data-action="close-dialog" aria-label="Cerrar">${icon("close")}</button></div><p class="eyebrow">JUNTOS LO HACEMOS POSIBLE</p><h2 id="dialog-title">${title}</h2><p class="dialog-description">${e(description)}</p>${fields}<p id="form-error" class="form-error" role="alert"></p><div class="dialog-footer"><button type="button" class="button secondary" data-action="close-dialog">Cancelar</button><button type="submit" class="button primary">${submit}</button></div><p class="dialog-local">${icon("shield")} ${edit.kind === "print" ? "Imprime la última lectura disponible. No modifica los datos." : edit.kind === "import" && !payload ? "El archivo se analiza localmente." : "El servidor valida tus permisos antes de guardar."}</p></form>`;
 }

@@ -34,6 +34,11 @@ const search = (value: string) => `<label class="search-box">${icon("search")}<i
 const empty = (title: string, message: string, action = "") => `<div class="empty-state">${icon("leaf")}<h3>${title}</h3><p>${message}</p>${action}</div>`;
 const roleLabel = (s: Snapshot, a: Assignment) => s.positions.find((p) => p.id === a.positionId)?.name ?? "Puesto";
 
+export function matchesAssignment(s: Snapshot, a: Assignment, ui: Pick<ViewState, "page" | "pendingOnly" | "query">) {
+  return (ui.page !== "mine" || (!!s.actor.volunteerId && a.volunteerId === s.actor.volunteerId)) &&
+    (!ui.pendingOnly || !a.volunteerId) && (!ui.query || normalized(s.volunteers.find((v) => v.id === a.volunteerId)?.name ?? "").includes(normalized(ui.query)));
+}
+
 export function workspaceView(s: Snapshot, ui: ViewState) {
   const nav: [Page, string, string][] = [["schedule", "Roles por área", "grid"], ["mine", "Mi participación", "calendar"], ["volunteers", "Voluntarios", "users"], ["activity", "Actividad", "clock"], ["settings", "Configuración", "settings"]];
   const content = ui.page === "schedule" || ui.page === "mine" ? schedule(s, ui) : ui.page === "volunteers" ? volunteers(s, ui) : ui.page === "activity" ? activity(s) : settings(s, ui);
@@ -56,8 +61,7 @@ function schedule(s: Snapshot, ui: ViewState) {
   const pending = daySlots.filter((a) => !a.volunteerId).length;
   const filled = daySlots.length - pending;
   const availableSlots = s.assignments.filter((a) => a.occurrenceId === ui.occurrenceId);
-  const matches = (a: Assignment) => (!isMine || (!!myId && a.volunteerId === myId)) &&
-    (!ui.pendingOnly || !a.volunteerId) && (!ui.query || normalized(s.volunteers.find((v) => v.id === a.volunteerId)?.name ?? "").includes(normalized(ui.query)));
+  const matches = (a: Assignment) => matchesAssignment(s, a, ui);
   const shown = areas.filter((a) => (ui.area === "all" || ui.area === a.id) && availableSlots.some((slot) => slot.areaId === a.id && matches(slot)));
   const actions = `${button("print", "Imprimir rol", false, "calendar")}${button("export", "Exportar datos", true, "download")}`;
   const title = heading(isMine ? "TU TIEMPO TAMBIÉN TRANSFORMA" : "ORGANIZARNOS TAMBIÉN ES CUIDARNOS", isMine ? "Tu lugar en el equipo." : "Cada persona, en su lugar.",

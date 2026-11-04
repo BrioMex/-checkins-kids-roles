@@ -54,6 +54,22 @@ textarea.form-control { resize: vertical; min-height: 80px; line-height: 1.7; }
 .local-status { white-space: normal; line-height: 1.6; }
 .form-error:empty { display: none; }
 [hidden] { display: none !important; }
+#print-roles { display: none; }
+.printing-roles #print-roles { display: block; position: absolute; left: -100000px; top: 0; }
+.print-sheet { width: 190mm; height: 254mm; break-after: page; break-inside: avoid; }
+.print-sheet:last-child { break-after: auto; }
+.print-day-content { width: 190mm; margin-inline: auto; color: #222; background: white; font: 9pt/1.25 Arial, sans-serif; overflow-wrap: anywhere; }
+.print-day-header { margin-bottom: 3mm; }
+.print-day-header h1 { font: bold 15pt/1.25 Arial, sans-serif; letter-spacing: normal; margin: 1mm 0; }
+.print-day-header p, .print-legend { font-size: 8pt; line-height: 1.25; }
+.print-area { width: 100%; min-width: 0; table-layout: fixed; border-collapse: collapse; margin: 0 0 3mm; font-size: 9pt; line-height: 1.25; }
+.print-area caption { text-align: left; font-size: 11pt; font-weight: bold; padding: 1mm 0; color: #222; }
+.print-area th, .print-area td { border: 1px solid #999; padding: 1.5mm 2mm; text-align: left; vertical-align: top; color: #222; white-space: normal; overflow-wrap: anywhere; }
+.print-area thead th { background: #edf0e7; font-weight: bold; }
+.print-area thead th:first-child { width: 24%; }
+.print-area tbody th { font-weight: bold; }
+.print-area small { display: block; font-size: 8pt; font-weight: normal; line-height: 1.25; margin-top: .5mm; }
+.print-vacant, .print-excluded { color: #555; }
 @media (max-width: 1050px) {
   .auth-layout { gap: 35px; }
   .auth-card { padding: 28px; }
@@ -80,4 +96,8 @@ textarea.form-control { resize: vertical; min-height: 80px; line-height: 1.7; }
 }
 @media print {
   .topbar, .auth-footer, .empty-actions { display: none; }
+  @page { size: letter portrait; margin: 10mm; }
+  body.printing-roles > :not(#print-roles) { display: none !important; }
+  body.printing-roles { margin: 0; padding: 0; background: white; }
+  .printing-roles #print-roles { position: static; }
 }

@@ -4,11 +4,13 @@ import { canEdit, today, type Snapshot } from "./schema";
 import { dialogView, type EditContext, type DialogKind } from "./dialogs";
 import { readWorkbook, type WorkbookPayload } from "./importer";
 import { gateView, workspaceView, type Page, type ViewState } from "./view";
+import { fitPrintPages, printView } from "./print";
 import type { RealtimeChannel, Session } from "@supabase/supabase-js";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const dialog = document.querySelector<HTMLDialogElement>("#editor")!;
 const toastElement = document.querySelector<HTMLDivElement>("#toast")!;
+const printRoot = document.querySelector<HTMLDivElement>("#print-roles")!;
 let api: WorkspaceApi | null = null;
 let snapshot: Snapshot | null = null;
 let gate: "setup" | "loading" | "login" | "blocked" = "loading";
@@ -63,12 +65,19 @@ function clearWorkspace() {
   epoch++;
   stopWatching();
   snapshot = null;
+  clearPrint();
   ui.editable = false;
   currentUser = "";
   refreshRequested = false;
   forceRequested = false;
   closeDialog();
 }
+function clearPrint() {
+  printRoot.replaceChildren();
+  document.body.classList.remove("printing-roles");
+}
+window.addEventListener("beforeprint", () => fitPrintPages(printRoot));
+window.addEventListener("afterprint", clearPrint);
 function closeDialog() {
   if (busy) return;
   if (dialog.open) dialog.close();
@@ -151,6 +160,7 @@ async function enter(session: Session) {
   const generation = ++epoch;
   stopWatching();
   snapshot = null;
+  clearPrint();
   gate = "loading";
   gateMessage = "";
   render();
@@ -171,9 +181,14 @@ async function enter(session: Session) {
   } finally { entering = false; }
 }
 function openEditor(kind: DialogKind, id: string | null = null) {
-  if (!snapshot || !ui.editable || busy) return;
+  if (!snapshot || (kind !== "print" && !ui.editable) || busy) return;
   let version = 0;
-  if (kind === "assignment") {
+  if (kind === "print") {
+    if (!snapshot.occurrences.length) {
+      toast("No hay fechas en el calendario para imprimir.");
+      return;
+    }
+  } else if (kind === "assignment") {
     const slot = snapshot.assignments.find((a) => a.id === id);
     if (!slot || !canEdit(snapshot, slot.areaId)) return;
     version = slot.version;
@@ -271,7 +286,7 @@ document.addEventListener("click", (event) => {
     ui.date = dates[Math.max(0, Math.min(dates.length - 1, dates.indexOf(ui.date) + (action === "next" ? 1 : -1)))];
     reconcileSelection();
     render();
-  } else if (action === "print") window.print();
+  } else if (action === "print") openEditor("print");
   else if (action === "export") exportData();
   else if (action === "generate" || action === "import") openEditor(action);
   else {
@@ -311,7 +326,7 @@ dialog.addEventListener("cancel", (event) => {
 });
 dialog.addEventListener("submit", (event) => {
   event.preventDefault();
-  if (!(event.target instanceof HTMLFormElement) || !snapshot || !api || !edit || busy) return;
+  if (!(event.target instanceof HTMLFormElement) || !snapshot || !edit || busy) return;
   const form = event.target;
   const context = { ...edit };
   const data = new FormData(form);
@@ -319,6 +334,23 @@ dialog.addEventListener("submit", (event) => {
   const selectedAreas = data.getAll("areas").map(String);
   const isActive = data.has("active");
   const errorElement = dialog.querySelector<HTMLElement>("#form-error")!;
+  if (context.kind === "print") {
+    try {
+      const range = val("range");
+      if (range !== "selected" && range !== "all") throw new Error("Selecciona las fechas que quieres imprimir.");
+      printRoot.innerHTML = printView(snapshot, ui, range);
+      document.body.classList.add("printing-roles");
+      fitPrintPages(printRoot);
+      closeDialog();
+      window.print();
+    } catch (error) {
+      clearPrint();
+      if (dialog.open) errorElement.textContent = message(error);
+      else toast(`No se pudo imprimir: ${message(error)}`);
+    }
+    return;
+  }
+  if (!api) return;
   const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
   const generation = epoch;
   busy = true;
